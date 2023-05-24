@@ -115,23 +115,27 @@
       var secondPeriodEndInput = document.getElementById("second-period-end").value.split(":");
       var secondPeriodEnd = parseFloat(secondPeriodEndInput[0]) + (parseFloat(secondPeriodEndInput[1]) / 60);
 
-      var firstPeriodDuration = firstPeriodEnd - firstPeriodStart;
-      var secondPeriodDuration = secondPeriodEnd - secondPeriodStart;
-      var lunchDuration = secondPeriodStart - firstPeriodEnd;
+      var firstPeriodDuration = calculateDuration(firstPeriodStart, firstPeriodEnd);
+      var secondPeriodDuration = calculateDuration(secondPeriodStart, secondPeriodEnd);
+      var lunchDuration = calculateDuration(firstPeriodEnd, secondPeriodStart);
 
       var totalDuration = firstPeriodDuration + secondPeriodDuration;
 
-      document.getElementById("total-result").innerText = "Duração Total: " + totalDuration.toFixed(2) + " horas";
-      document.getElementById("lunch-result").innerText = "Duração do Almoço: " + lunchDuration.toFixed(2) + " horas";
+      document.getElementById("total-result").innerText = "Duração Total: " + convertToHours(totalDuration);
+      document.getElementById("lunch-result").innerText = "Duração do Almoço: " + convertToHours(lunchDuration);
 
       if (totalDuration < totalHours) {
-        document.getElementById("total-warning").innerText = "Atraso: " + (totalHours - totalDuration).toFixed(2) + " horas";
+        document.getElementById("total-warning").innerText = "Atraso: " + convertToHours(totalHours - totalDuration);
       } else {
-        document.getElementById("total-warning").innerText = "Hora Extra: " + (totalDuration - totalHours).toFixed(2) + " horas";
+        document.getElementById("total-warning").innerText = "Hora Extra: " + convertToHours(totalDuration - totalHours);
       }
 
-      if (firstPeriodDuration + secondPeriodDuration > 6) {
-        document.getElementById("total-warning").innerText += " | Hora entre períodos > 6 horas (Advertência)";
+      if (firstPeriodDuration > 6) {
+        document.getElementById("total-warning").innerText += " | O primeiro período excede 6 horas (Advertência)";
+      }
+
+      if (secondPeriodDuration > 6) {
+        document.getElementById("total-warning").innerText += " | O segundo período excede 6 horas (Advertência)";
       }
 
       if (totalDuration > 10) {
@@ -146,6 +150,22 @@
 
       document.getElementById("results").style.display = "block";
     });
+
+    function calculateDuration(start, end) {
+      return end >= start ? end - start : (24 - start) + end;
+    }
+
+    function convertToHours(duration) {
+      var hours = Math.floor(duration);
+      var minutes = Math.round((duration - hours) * 60);
+
+      if (minutes === 60) {
+        hours++;
+        minutes = 0;
+      }
+
+      return hours.toString().padStart(2, "0") + ":" + minutes.toString().padStart(2, "0");
+    }
   </script>
 </body>
 </html>
