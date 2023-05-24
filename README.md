@@ -1,18 +1,20 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Calculadora de Horas Trabalhadas</title>
+  <title>Calculadora de Horas de Trabalho</title>
   <style>
     body {
       font-family: Arial, sans-serif;
+      background-color: #f2f2f2;
     }
 
-    .container {
-      max-width: 500px;
+    #container {
+      max-width: 400px;
       margin: 0 auto;
       padding: 20px;
-      background-color: #f1f1f1;
+      background-color: #fff;
       border-radius: 5px;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
     }
 
     h1 {
@@ -21,20 +23,18 @@
 
     label {
       display: block;
-      margin-bottom: 10px;
-      font-weight: bold;
+      margin-top: 10px;
     }
 
-    input[type="time"],
-    input[type="number"] {
+    input[type="time"] {
       width: 100%;
-      padding: 8px;
-      margin-bottom: 20px;
+      padding: 5px;
     }
 
-    button {
+    input[type="submit"] {
       display: block;
       width: 100%;
+      margin-top: 20px;
       padding: 10px;
       background-color: #4CAF50;
       color: #fff;
@@ -43,98 +43,109 @@
       cursor: pointer;
     }
 
-    .error {
-      color: red;
-      margin-top: 10px;
-    }
-
     .result {
       margin-top: 20px;
+      padding: 10px;
+      background-color: #f2f2f2;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+    }
+
+    .warning {
+      color: #ff0000;
+      font-weight: bold;
+    }
+
+    .success {
+      color: #008000;
       font-weight: bold;
     }
   </style>
 </head>
 <body>
-  <div class="container">
-    <h1>Calculadora de Horas Trabalhadas</h1>
+  <div id="container">
+    <h1>Calculadora de Horas de Trabalho</h1>
+    <form id="work-hours-form">
+      <label for="total-hours">Total de Horas Trabalhadas:</label>
+      <input type="time" id="total-hours" required>
 
-    <label for="horaTrabalhada">Hora Trabalhada:</label>
-    <input type="number" id="horaTrabalhada" min="0" step="1" required>
+      <label for="first-period-start">Início do Primeiro Período:</label>
+      <input type="time" id="first-period-start" required>
 
-    <label for="inicioPrimeiroPeriodo">Início do Primeiro Período:</label>
-    <input type="time" id="inicioPrimeiroPeriodo" required>
+      <label for="first-period-end">Fim do Primeiro Período:</label>
+      <input type="time" id="first-period-end" required>
 
-    <label for="fimPrimeiroPeriodo">Fim do Primeiro Período:</label>
-    <input type="time" id="fimPrimeiroPeriodo" required>
+      <label for="second-period-start">Início do Segundo Período:</label>
+      <input type="time" id="second-period-start" required>
 
-    <label for="inicioSegundoPeriodo">Início do Segundo Período:</label>
-    <input type="time" id="inicioSegundoPeriodo" required>
+      <label for="second-period-end">Fim do Segundo Período:</label>
+      <input type="time" id="second-period-end" required>
 
-    <label for="fimSegundoPeriodo">Fim do Segundo Período:</label>
-    <input type="time" id="fimSegundoPeriodo" required>
+      <input type="submit" value="Calcular">
+    </form>
 
-    <button onclick="calcularHoras()">Calcular</button>
-
-    <div id="resultado"></div>
+    <div id="results" style="display: none;">
+      <div class="result">
+        <span id="total-result"></span>
+        <span id="total-warning" class="warning"></span>
+      </div>
+      <div class="result">
+        <span id="lunch-result"></span>
+        <span id="lunch-warning" class="warning"></span>
+      </div>
+    </div>
   </div>
 
   <script>
-    function calcularHoras() {
-      var horaTrabalhada = parseInt(document.getElementById("horaTrabalhada").value);
-      var inicioPrimeiroPeriodo = document.getElementById("inicioPrimeiroPeriodo").value;
-      var fimPrimeiroPeriodo = document.getElementById("fimPrimeiroPeriodo").value;
-      var inicioSegundoPeriodo = document.getElementById("inicioSegundoPeriodo").value;
-      var fimSegundoPeriodo = document.getElementById("fimSegundoPeriodo").value;
+    document.getElementById("work-hours-form").addEventListener("submit", function(event) {
+      event.preventDefault();
 
-      var primeiroPeriodoHoras = calcularDiferencaHoras(inicioPrimeiroPeriodo, fimPrimeiroPeriodo);
-      var segundoPeriodoHoras = calcularDiferencaHoras(inicioSegundoPeriodo, fimSegundoPeriodo);
-      var totalHorasTrabalhadas = primeiroPeriodoHoras + segundoPeriodoHoras + (horaTrabalhada / 60);
+      var totalHoursInput = document.getElementById("total-hours").value.split(":");
+      var totalHours = parseFloat(totalHoursInput[0]) + (parseFloat(totalHoursInput[1]) / 60);
 
-      var resultado = document.getElementById("resultado");
-      resultado.innerHTML = "";
+      var firstPeriodStartInput = document.getElementById("first-period-start").value.split(":");
+      var firstPeriodStart = parseFloat(firstPeriodStartInput[0]) + (parseFloat(firstPeriodStartInput[1]) / 60);
 
-      if (primeiroPeriodoHoras > 6 || segundoPeriodoHoras > 6 || totalHorasTrabalhadas > 10) {
-        resultado.innerHTML += "<p class='error'>Erro: O total de horas trabalhadas excede as regras.</p>";
+      var firstPeriodEndInput = document.getElementById("first-period-end").value.split(":");
+      var firstPeriodEnd = parseFloat(firstPeriodEndInput[0]) + (parseFloat(firstPeriodEndInput[1]) / 60);
+
+      var secondPeriodStartInput = document.getElementById("second-period-start").value.split(":");
+      var secondPeriodStart = parseFloat(secondPeriodStartInput[0]) + (parseFloat(secondPeriodStartInput[1]) / 60);
+
+      var secondPeriodEndInput = document.getElementById("second-period-end").value.split(":");
+      var secondPeriodEnd = parseFloat(secondPeriodEndInput[0]) + (parseFloat(secondPeriodEndInput[1]) / 60);
+
+      var firstPeriodDuration = firstPeriodEnd - firstPeriodStart;
+      var secondPeriodDuration = secondPeriodEnd - secondPeriodStart;
+      var lunchDuration = secondPeriodStart - firstPeriodEnd;
+
+      var totalDuration = firstPeriodDuration + secondPeriodDuration;
+
+      document.getElementById("total-result").innerText = "Duração Total: " + totalDuration.toFixed(2) + " horas";
+      document.getElementById("lunch-result").innerText = "Duração do Almoço: " + lunchDuration.toFixed(2) + " horas";
+
+      if (totalDuration < totalHours) {
+        document.getElementById("total-warning").innerText = "Atraso: " + (totalHours - totalDuration).toFixed(2) + " horas";
       } else {
-        var horasTrabalhadas = Math.floor(totalHorasTrabalhadas);
-        var minutosTrabalhados = Math.round((totalHorasTrabalhadas - horasTrabalhadas) * 60);
-
-        var horasExtras = 0;
-        var minutosExtras = 0;
-
-        if (totalHorasTrabalhadas > 8) {
-          horasExtras = horasTrabalhadas - 8;
-          minutosExtras = minutosTrabalhados;
-          horasTrabalhadas = 8;
-          minutosTrabalhados = 0;
-        }
-
-        resultado.innerHTML += "<p class='result'>Horas trabalhadas: " + formatarHoras(horasTrabalhadas, minutosTrabalhados) + ".</p>";
-        resultado.innerHTML += "<p class='result'>Hora extra: " + formatarHoras(horasExtras, minutosExtras) + ".</p>";
-      }
-    }
-
-    function calcularDiferencaHoras(inicio, fim) {
-      var inicioHoras = parseInt(inicio.split(":")[0]);
-      var inicioMinutos = parseInt(inicio.split(":")[1]);
-      var fimHoras = parseInt(fim.split(":")[0]);
-      var fimMinutos = parseInt(fim.split(":")[1]);
-
-      var diferencaHoras = fimHoras - inicioHoras;
-      var diferencaMinutos = fimMinutos - inicioMinutos;
-
-      if (diferencaMinutos < 0) {
-        diferencaHoras--;
-        diferencaMinutos += 60;
+        document.getElementById("total-warning").innerText = "Hora Extra: " + (totalDuration - totalHours).toFixed(2) + " horas";
       }
 
-      var horas = diferencaHoras + diferencaMinutos / 60;
-      return horas;
-    }
+      if (firstPeriodDuration + secondPeriodDuration > 6) {
+        document.getElementById("total-warning").innerText += " | Hora entre períodos > 6 horas (Advertência)";
+      }
 
-    function formatarHoras(horas, minutos) {
-      return horas.toString().padStart(2, '0') + ':' + minutos.toString().padStart(2, '0');
-    }
+      if (totalDuration > 10) {
+        document.getElementById("total-warning").innerText += " | Hora total de expediente > 10 horas (Advertência)";
+      }
+
+      if (lunchDuration < 1) {
+        document.getElementById("lunch-warning").innerText = "Almoço menor que 1 hora (Advertência)";
+      } else if (lunchDuration > 2) {
+        document.getElementById("lunch-warning").innerText = "Almoço maior que 2 horas (Advertência)";
+      }
+
+      document.getElementById("results").style.display = "block";
+    });
   </script>
 </body>
 </html>
