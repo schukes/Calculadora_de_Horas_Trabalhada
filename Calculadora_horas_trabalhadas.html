@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Calculadora de Horas de Trabalho</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f2f2f2;
+        }
+
+        #container {
+            max-width: 450px; /* Aumentado para acomodar o histórico */
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+
+        label {
+            display: block;
+            margin-top: 10px;
+            font-weight: bold;
+        }
+
+        input[type="time"] {
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 5px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .action-buttons input[type="submit"],
+        .action-buttons button {
+            flex-grow: 1;
+            padding: 10px;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        #calculate-btn {
+            background-color: #007bff; /* Azul */
+        }
+
+        #print-btn {
+            background-color: #6c757d; /* Cinza */
+        }
+
+        #results {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #e9ecef;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+
+        .result-item {
+            margin-bottom: 5px;
+            padding: 5px;
+            border-bottom: 1px dotted #ccc;
+        }
+
+        .warning {
+            color: #dc3545; /* Vermelho */
+            font-weight: bold;
+        }
+
+        .success {
+            color: #28a745; /* Verde */
+            font-weight: bold;
+        }
+
+        .history-section {
+            margin-top: 30px;
+            padding-top: 15px;
+            border-top: 2px solid #ccc;
+        }
+
+        #history-list {
+            max-height: 200px;
+            overflow-y: auto;
+            list-style: none;
+            padding: 0;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+
+        #history-list li {
+            padding: 10px;
+            border-bottom: 1px solid #eee;
+            font-size: 0.9em;
+            cursor: pointer;
+        }
+
+        #history-list li:last-child {
+            border-bottom: none;
+        }
+
+        #history-list li:hover {
+            background-color: #f8f9fa;
+        }
+
+        #clear-history-btn {
+            margin-top: 10px;
+            background-color: #dc3545;
+            color: white;
+            padding: 8px;
+            width: 100%;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        
+        @media print {
+            body * {
+                visibility: hidden;
+            }
+            #results, #results * {
+                visibility: visible;
+            }
+            #results {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100%;
+                margin: 0;
+                padding: 20px;
+                box-shadow: none;
+                background-color: white;
+                border: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="container">
+        <h1>Calculadora de Jornada</h1>
+        <form id="work-hours-form">
+            <label for="expected-duration">Jornada Diária Prevista (HH:MM):</label>
+            <input type="time" id="expected-duration" value="08:00" required>
+
+            <label for="first-period-start">1. Início da Jornada (Entrada):</label>
+            <input type="time" id="first-period-start" required>
+
+            <label for="first-period-end">2. Fim do 1º Período (Saída p/ Almoço):</label>
+            <input type="time" id="first-period-end" required>
+
+            <label for="second-period-start">3. Início do 2º Período (Retorno):</label>
+            <input type="time" id="second-period-start" required>
+
+            <label for="second-period-end">4. Fim da Jornada (Saída):</label>
+            <input type="time" id="second-period-end" required>
+
+            <div class="action-buttons">
+                <input type="submit" id="calculate-btn" value="Calcular Jornada">
+                <button type="button" id="print-btn" disabled>Imprimir Resultados</button>
+            </div>
+        </form>
+
+        <div id="results" style="display: none;">
+            </div>
+
+        <div class="history-section">
+            <h2>Histórico de Cálculos</h2>
+            <ul id="history-list">
+                </ul>
+            <button id="clear-history-btn">Limpar Histórico</button>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const form = document.getElementById("work-hours-form");
+            const resultsDiv = document.getElementById("results");
+            const printBtn = document.getElementById("print-btn");
+            const historyList = document.getElementById("history-list");
+            const clearHistoryBtn = document.getElementById("clear-history-btn");
+
+            // --- Funções de Utilitário ---
+
+            // Converte HH:MM para total de minutos
+            function timeToMinutes(timeStr) {
+                if (!timeStr) return 0;
+                const [hours, minutes] = timeStr.split(":").map(Number);
+                return hours * 60 + minutes;
+            }
+
+            // Converte total de minutos para HH:MM
+            function minutesToTime(totalMinutes) {
+                if (totalMinutes < 0) totalMinutes = -totalMinutes; // Lida com tempo negativo para exibir a diferença
+                const hours = Math.floor(totalMinutes / 60);
+                const minutes = Math.round(totalMinutes % 60);
+                return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}`;
+            }
+
+            // Calcula a duração em minutos, lidando com passagem de meia-noite
+            function calculateDurationInMinutes(startMinutes, endMinutes) {
+                return endMinutes >= startMinutes ? endMinutes - startMinutes : (1440 - startMinutes) + endMinutes; // 1440 min = 24h
+            }
+
+            // --- Lógica Principal de Cálculo ---
+
+            form.addEventListener("submit", function(event) {
+                event.preventDefault();
+
+                // 1. Coleta e Converte Entradas para Minutos
+                const expectedMinutes = timeToMinutes(document.getElementById("expected-duration").value);
+                const start1 = timeToMinutes(document.getElementById("first-period-start").value);
+                const end1 = timeToMinutes(document.getElementById("first-period-end").value);
+                const start2 = timeToMinutes(document.getElementById("second-period-start").value);
+                const end2 = timeToMinutes(document.getElementById("second-period-end").value);
+                
+                // Validação de Ordem Simples: Fim deve ser depois do Início
+                if (end1 < start1 || end2 < start2 || start2 < end1) {
+                    resultsDiv.innerHTML = `<p class="warning">Erro: Certifique-se de que os horários de término são posteriores aos de início e que o retorno é após a saída para o almoço.</p>`;
+                    resultsDiv.style.display = "block";
+                    return; 
+                }
+
+                // 2. Cálculos de Duração em Minutos
+                const duration1 = calculateDurationInMinutes(start1, end1);
+                const duration2 = calculateDurationInMinutes(start2, end2);
+                const lunchDuration = calculateDurationInMinutes(end1, start2);
+                const totalWorkDuration = duration1 + duration2;
+
+                // 3. Diferença e Advertências
+                const timeDifference = totalWorkDuration - expectedMinutes; // Positivo = Extra, Negativo = Atraso
+                
+                let totalWarningHtml = '';
+                
+                if (duration1 > 360) { // 360 min = 6 horas
+                    totalWarningHtml += `<span class="warning">⚠️ Período 1 (>6h): ${minutesToTime(duration1)}</span><br>`;
+                }
+                if (duration2 > 360) {
+                    totalWarningHtml += `<span class="warning">⚠️ Período 2 (>6h): ${minutesToTime(duration2)}</span><br>`;
+                }
+                if (totalWorkDuration > 600) { // 600 min = 10 horas
+                    totalWarningHtml += `<span class="warning">⚠️ Jornada Total (>10h): ${minutesToTime(totalWorkDuration)}</span><br>`;
+                }
+
+                let lunchWarningHtml = '';
+                if (lunchDuration < 60) { // 60 min = 1 hora
+                    lunchWarningHtml = `<span class="warning">⛔ Almoço < 1h: ${minutesToTime(lunchDuration)}</span>`;
+                } else if (lunchDuration > 120) { // 120 min = 2 horas
+                    lunchWarningHtml = `<span class="warning">⛔ Almoço > 2h: ${minutesToTime(lunchDuration)}</span>`;
+                } else {
+                    lunchWarningHtml = `<span class="success">Almoço OK: ${minutesToTime(lunchDuration)}</span>`;
+                }
+
+                // 4. Monta o HTML de Resultados
+                const resultHtml = `
+                    <div class="result-item"><strong>Jornada Efetiva:</strong> ${minutesToTime(totalWorkDuration)}</div>
+                    <div class="result-item"><strong>Intervalo/Almoço:</strong> ${lunchWarningHtml}</div>
+                    <div class="result-item"><strong>Primeiro Período:</strong> ${minutesToTime(duration1)}</div>
+                    <div class="result-item"><strong>Segundo Período:</strong> ${minutesToTime(duration2)}</div>
+                    <div class="result-item">
+                        <strong>Diferença (Previsto ${minutesToTime(expectedMinutes)}):</strong> 
+                        <span class="${timeDifference >= 0 ? 'success' : 'warning'}">
+                            ${timeDifference >= 0 ? 'Hora Extra' : 'Atraso'}: ${minutesToTime(timeDifference)}
+                        </span>
+                    </div>
+                    ${totalWarningHtml ? `<div class="result-item">${totalWarningHtml}</div>` : ''}
+                `;
+                
+                resultsDiv.innerHTML = resultHtml;
+                resultsDiv.style.display = "block";
+                printBtn.disabled = false;
+
+                // 5. Salva no Histórico
+                saveToHistory({
+                    date: new Date().toLocaleString('pt-BR'),
+                    input: { start1: document.getElementById("first-period-start").value, end2: document.getElementById("second-period-end").value },
+                    result: { total: minutesToTime(totalWorkDuration), difference: minutesToTime(timeDifference) }
+                });
+            });
+
+            // --- Funcionalidade de Impressão ---
+
+            printBtn.addEventListener('click', () => {
+                window.print();
+            });
+
+            // --- Funcionalidade de Histórico ---
+
+            function getHistory() {
+                const history = localStorage.getItem('workHoursHistory');
+                return history ? JSON.parse(history) : [];
+            }
+
+            function saveToHistory(entry) {
+                const history = getHistory();
+                history.unshift(entry); // Adiciona o mais novo no início
+                // Limita o histórico a 10 itens
+                if (history.length > 10) history.pop(); 
+                localStorage.setItem('workHoursHistory', JSON.stringify(history));
+                renderHistory();
+            }
+
+            function renderHistory() {
+                const history = getHistory();
+                historyList.innerHTML = '';
+                if (history.length === 0) {
+                    historyList.innerHTML = '<li>Nenhum cálculo no histórico.</li>';
+                    return;
+                }
+                
+                history.forEach((item, index) => {
+                    const li = document.createElement('li');
+                    li.innerHTML = `
+                        **${item.date}** | 
+                        Horário: ${item.input.start1} - ${item.input.end2} | 
+                        Trabalho: **${item.result.total}** | 
+                        Diferença: ${item.result.difference}
+                    `;
+                    // Adicionar funcionalidade para carregar dados do histórico no formulário
+                    li.addEventListener('click', () => {
+                        document.getElementById("first-period-start").value = item.input.start1;
+                        document.getElementById("second-period-end").value = item.input.end2;
+                        // Nota: Os outros campos (end1, start2, expected-duration) não foram salvos, mas podem ser adicionados se necessário.
+                        alert(`Horários de início e fim (${item.input.start1} - ${item.input.end2}) carregados no formulário.`);
+                    });
+                    historyList.appendChild(li);
+                });
+            }
+
+            clearHistoryBtn.addEventListener('click', () => {
+                if (confirm('Tem certeza de que deseja limpar todo o histórico?')) {
+                    localStorage.removeItem('workHoursHistory');
+                    renderHistory();
+                }
+            });
+
+            // Carrega o histórico ao iniciar
+            renderHistory();
+        });
+    </script>
+</body>
+</html>
